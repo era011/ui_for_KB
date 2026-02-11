@@ -1,0 +1,55 @@
+/* button[kind="secondary"] p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+} */
+
+.st-key-pills > div > div{
+    display: flex;
+    justify-content:space-between;
+    width: 100%;
+}
+.st-key-pills > div {
+    width: 100%;
+}
+.st-key-pills  {
+    width: 100%;
+}
+
+.e3g0k5y6{
+    display: none !important;
+}
+
+.st-key-docs{
+    width: 100%;
+}
+
+.st-key-block_docs{
+    width: 100%;
+}
+
+.st-key-block_docs > div{
+    width: 100%;
+    text-align: left;
+}
+
+.st-key-block_docs > div > div{
+    width: 100%;
+    text-align: left;
+}
+.st-key-doc_buttons{
+    text-align: left;
+}
+
+/* .st-key-block_docs > div > div > button {
+    width: 100%;
+    justify-content: start;
+} */
+.st-key-block_docs > div > div > div > div > div {
+    width: 100%;
+    justify-content: start;
+}
+.st-key-block_docs > div > div > div > div > div > div > button {
+    width: 100%;
+    justify-content: start;
+}

@@ -1,0 +1,14 @@
+services:
+  ui:
+    build: .
+    container_name: marketing-ui
+    ports:
+      - "8509:8501"
+    env_file:
+      - .env
+    networks:
+      - kb_default
+      
+networks:
+  kb_default:
+    external: true      

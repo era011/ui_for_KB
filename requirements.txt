@@ -1,0 +1,6 @@
+streamlit==1.53.1
+psycopg2-binary==2.9.11
+python-dotenv==1.2.1
+weaviate-client==4.19.2
+langchain-core==1.2.8
+pandas==2.3.3
