@@ -1,7 +1,8 @@
 from weaviate.classes.query import Filter
 from backend.db import *
-import streamlit as st
+from functools import lru_cache
 import os
+import io
 import hashlib
 from langchain_core.documents import Document
 from const import *
@@ -17,7 +18,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 load_dotenv()
 
 
-@st.cache_resource
+@lru_cache(maxsize=1)
 def get_client():
     return connect_to_local(
         host=os.getenv("SERVER"),
@@ -92,12 +93,14 @@ def get_chunks_weaviate(client, doc_id: str, limit: int = 1000):
         chunks = []
         for obj in result.objects:
             chunks.append(obj.properties.get("content", ""))
-        chunks.append(str({
-            "chunk_index": obj.properties.get("chunk_index", ""),
-            "name": obj.properties.get("name", ""),
-            "id_doc": obj.properties.get("id_doc", ""),
-            "added_date_to_weaviate": obj.properties.get("added_date_to_weaviate", ""),
-            }))
+        if result.objects:
+            last = result.objects[-1]
+            chunks.append(str({
+                "chunk_index": last.properties.get("chunk_index", ""),
+                "name": last.properties.get("name", ""),
+                "id_doc": last.properties.get("id_doc", ""),
+                "added_date_to_weaviate": last.properties.get("added_date_to_weaviate", ""),
+                }))
         return chunks
     except Exception as e:
         raise ValueError(f"Ошибка при получении чанков из Weaviate: {e}")
@@ -207,22 +210,78 @@ def upload_chunks(client, collection_name: str, chunks: List[Document]):
             },
         )
 
+SUPPORTED_EXTENSIONS = (".txt", ".pdf", ".docx")
+
+
+def _decode_txt_bytes(bytes_data: bytes) -> str:
+    try:
+        return bytes_data.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            return bytes_data.decode("cp1251")
+        except UnicodeDecodeError as e:
+            raise ValueError("Не удалось декодировать файл. Нужен UTF-8 (или cp1251).") from e
+
+
+def _extract_text_from_pdf(bytes_data: bytes) -> str:
+    try:
+        from pypdf import PdfReader
+    except ImportError as e:
+        raise ValueError("Для загрузки PDF нужен пакет pypdf (pip install pypdf).") from e
+    try:
+        reader = PdfReader(io.BytesIO(bytes_data))
+        pages = [page.extract_text() or "" for page in reader.pages]
+        return "\n\n".join(pages).strip()
+    except Exception as e:
+        raise ValueError(f"Не удалось прочитать PDF-файл: {e}") from e
+
+
+def _extract_text_from_docx(bytes_data: bytes) -> str:
+    try:
+        from docx import Document as DocxDocument
+    except ImportError as e:
+        raise ValueError("Для загрузки DOCX нужен пакет python-docx (pip install python-docx).") from e
+    try:
+        docx_doc = DocxDocument(io.BytesIO(bytes_data))
+        parts = [p.text for p in docx_doc.paragraphs if p.text.strip()]
+        for table in docx_doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if cell.text.strip():
+                        parts.append(cell.text)
+        return "\n\n".join(parts).strip()
+    except Exception as e:
+        raise ValueError(f"Не удалось прочитать DOCX-файл: {e}") from e
+
+
+def extract_text(name: str, bytes_data: bytes) -> str:
+    ext = os.path.splitext(name)[1].lower()
+    if ext == ".txt":
+        return _decode_txt_bytes(bytes_data)
+    elif ext == ".pdf":
+        return _extract_text_from_pdf(bytes_data)
+    elif ext == ".docx":
+        return _extract_text_from_docx(bytes_data)
+    else:
+        raise ValueError(
+            f"Неподдерживаемый формат файла: {ext or 'неизвестен'}. "
+            f"Поддерживаются: {', '.join(SUPPORTED_EXTENSIONS)}"
+        )
+
+
 def add_text_document_to_weaviate(uploaded_file):
     """
-    Добавляет только текстовый документ в Postgres + Weaviate.
+    Добавляет документ (.txt, .pdf, .docx) в Postgres + Weaviate.
     expected: uploaded_file.read() -> bytes, uploaded_file.name -> str
+    Возвращает id_doc добавленного документа.
     """
     try:
         client = get_client()
         bytes_data = uploaded_file.read()
         name = getattr(uploaded_file, "name", "uploaded.txt")
-        try:
-            text = bytes_data.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                text = bytes_data.decode("cp1251")
-            except UnicodeDecodeError as e:
-                raise ValueError("Не удалось декодировать файл. Нужен UTF-8 (или cp1251).") from e
+        text = extract_text(name, bytes_data)
+        if not text.strip():
+            raise ValueError(f"Не удалось извлечь текст из документа {name}")
         doc_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
         ensure_schema(client, COLLECTION_NAME)
         if not document_not_exists_pg(doc_hash):
@@ -236,6 +295,7 @@ def add_text_document_to_weaviate(uploaded_file):
             except Exception as e:
                 delete_document_postgres(doc_hash)
                 raise ValueError(f"Произошла ошибка при добавлении документа в Weaviate: {e}")
+        return doc_hash
 
     except Exception as e:
-        raise ValueError(f"Произошла ошибка при добавлении документа: {e}")   
+        raise ValueError(f"Произошла ошибка при добавлении документа: {e}")

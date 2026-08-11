@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Альфа Ойл · База знаний</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">АО</span>
+        <div class="brand-text">
+          <strong>Альфа Ойл</strong>
+          <span>База знаний операторов</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Поиск по названию документа…" autocomplete="off">
+        </div>
+        <button id="logs-btn" class="btn" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+          Логи
+        </button>
+        <button id="upload-btn" class="btn btn-primary" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Добавить документ
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-list" aria-label="Список документов">
+        <div class="panel-header">
+          <h2>Документы</h2>
+          <span id="doc-count" class="badge">0</span>
+        </div>
+        <div id="doc-list" class="doc-list">
+          <div class="empty-state">Загрузка…</div>
+        </div>
+      </section>
+
+      <section class="panel panel-viewer" id="viewer-panel" aria-label="Просмотр документа">
+        <div class="viewer-empty" id="viewer-empty">
+          <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true">
+            <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <p>Выберите документ слева,<br>чтобы увидеть его содержимое</p>
+        </div>
+        <div class="viewer-content hidden" id="viewer-content">
+          <div class="panel-header">
+            <h2 id="viewer-title">Документ</h2>
+            <button id="viewer-close" class="btn-icon" type="button" title="Закрыть" aria-label="Закрыть">✕</button>
+          </div>
+          <div id="chunks-list" class="chunks-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="upload-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+      <div class="modal-header">
+        <h3 id="upload-modal-title">Добавить документы</h3>
+        <button id="upload-modal-close" class="btn-icon" type="button" aria-label="Закрыть">✕</button>
+      </div>
+      <label id="dropzone" class="dropzone" for="file-input">
+        <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
+          <path d="M12 16V4M12 4l-4 4M12 4l4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <p><strong>Перетащите файлы сюда</strong><br>или нажмите, чтобы выбрать<br><span class="dropzone-hint">.txt, .pdf, .docx</span></p>
+        <input id="file-input" type="file" accept=".txt,.pdf,.docx" multiple hidden>
+      </label>
+      <div id="upload-results" class="upload-results"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="logs-modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="logs-modal-title">
+      <div class="modal-header">
+        <h3 id="logs-modal-title">Журнал действий</h3>
+        <div class="modal-header-actions">
+          <button id="logs-refresh" class="btn-icon" type="button" title="Обновить" aria-label="Обновить">⟳</button>
+          <button id="logs-modal-close" class="btn-icon" type="button" aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+      <div id="logs-list" class="logs-list"></div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

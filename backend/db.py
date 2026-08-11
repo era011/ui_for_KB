@@ -34,6 +34,57 @@ def ensure_marketing_files_table():
             );
         """)
 
+def ensure_action_logs_table():
+    with get_pg_cursor() as cur:
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS {LOG_TABLE_NAME} (
+                id SERIAL PRIMARY KEY,
+                action TEXT NOT NULL,
+                status TEXT NOT NULL,
+                doc_id TEXT,
+                doc_name TEXT,
+                message TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        """)
+
+def log_action(action: str, status: str, doc_id: str = None, doc_name: str = None, message: str = None):
+    """Пишет запись в журнал действий. Ошибки логирования не должны ронять основной запрос."""
+    try:
+        with get_pg_cursor() as cur:
+            cur.execute(f"""
+                INSERT INTO {LOG_TABLE_NAME} (action, status, doc_id, doc_name, message)
+                VALUES (%s, %s, %s, %s, %s);
+            """, (action, status, doc_id, doc_name, message))
+    except Exception as e:
+        print(f"Не удалось записать лог действия: {e}")
+
+def get_action_logs(limit: int = 200):
+    try:
+        with get_pg_cursor() as cur:
+            cur.execute(f"""
+                SELECT id, action, status, doc_id, doc_name, message, created_at
+                FROM {LOG_TABLE_NAME}
+                ORDER BY created_at DESC
+                LIMIT %s;
+            """, (limit,))
+            rows = cur.fetchall()
+        return [
+            {
+                "id": row[0],
+                "action": row[1],
+                "status": row[2],
+                "doc_id": row[3],
+                "doc_name": row[4],
+                "message": row[5],
+                "created_at": row[6].isoformat() if row[6] else None,
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        print(f"Ошибка при получении логов действий: {e}")
+        return []
+
 def get_connection():
     if pg_pool is None:
         raise RuntimeError("Пул соединений не инициализирован. Сначала вызови init_pg_pool().")
