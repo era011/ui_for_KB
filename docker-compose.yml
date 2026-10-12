@@ -2,6 +2,7 @@ services:
   ui:
     build: .
     container_name: marketing-ui
+    restart: unless-stopped
     ports:
       - "8509:8501"
     env_file:

@@ -10,6 +10,7 @@ venv/
 
 # Env
 .env
+server_creds.txt
 
 # IDE
 .vscode/
